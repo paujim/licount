@@ -18,33 +18,6 @@ func NewLicenceCalculator(s CsvScanner) LicenceCalculator {
 	return &licenceCalculator{scanner: s}
 }
 
-// The Commenented code shows the original implementation.
-
-// func (lc *licenceCalculator) Calculate(applicationID string) int {
-// 	data := []*entities.License{}
-// 	l, err := lc.scanner.Scan()
-// 	for err == nil {
-// 		data = append(data, l)
-// 		l, err = lc.scanner.Scan()
-// 	}
-// 	return filterProcess(data, applicationID)
-// }
-// func filterProcess(data []*entities.License, applicationID string) int {
-// 	groupByUser := map[string][]*entities.License{}
-// 	for _, item := range data {
-// 		// FilterBy ApplicationID
-// 		if item.ApplicationID == applicationID {
-// 			// GroupBy UserID
-// 			groupByUser[item.UserID] = append(groupByUser[item.UserID], item)
-// 		}
-// 	}
-// 	var sum int
-// 	for _, computers := range groupByUser {
-// 		sum += countDistinct(computers)
-// 	}
-// 	return sum
-// }
-
 func (lc *licenceCalculator) Calculate(applicationID string) (int, error) {
 	dataCn := lc.scanner.ProduceByApplicationId(applicationID)
 	return consumer(dataCn)
