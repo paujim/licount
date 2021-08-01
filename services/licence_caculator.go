@@ -7,8 +7,7 @@ import (
 )
 
 type LicenceCalculator interface {
-	Calculate(applicationID string) int
-	CalculateV2(applicationID string) int
+	Calculate(applicationID string) (int, error)
 }
 
 type licenceCalculator struct {
@@ -19,53 +18,54 @@ func NewLicenceCalculator(s CsvScanner) LicenceCalculator {
 	return &licenceCalculator{scanner: s}
 }
 
-func (lc *licenceCalculator) Calculate(applicationID string) int {
-	data := []*entities.License{}
-	l, err := lc.scanner.Scan()
-	for err == nil {
-		data = append(data, l)
-		l, err = lc.scanner.Scan()
-	}
-	return filterProcess(data, applicationID)
+// The Commenented code shows the original implementation.
+
+// func (lc *licenceCalculator) Calculate(applicationID string) int {
+// 	data := []*entities.License{}
+// 	l, err := lc.scanner.Scan()
+// 	for err == nil {
+// 		data = append(data, l)
+// 		l, err = lc.scanner.Scan()
+// 	}
+// 	return filterProcess(data, applicationID)
+// }
+// func filterProcess(data []*entities.License, applicationID string) int {
+// 	groupByUser := map[string][]*entities.License{}
+// 	for _, item := range data {
+// 		// FilterBy ApplicationID
+// 		if item.ApplicationID == applicationID {
+// 			// GroupBy UserID
+// 			groupByUser[item.UserID] = append(groupByUser[item.UserID], item)
+// 		}
+// 	}
+// 	var sum int
+// 	for _, computers := range groupByUser {
+// 		sum += countDistinct(computers)
+// 	}
+// 	return sum
+// }
+
+func (lc *licenceCalculator) Calculate(applicationID string) (int, error) {
+	dataCn := lc.scanner.ProduceByApplicationId(applicationID)
+	return consumer(dataCn)
 }
 
-func (lc *licenceCalculator) CalculateV2(applicationID string) int {
-	link := lc.scanner.ProduceByApplicationId(applicationID)
-	sumChan := consumer(link)
-	sum := <-sumChan
-	return sum
-}
-
-func consumer(link <-chan *entities.License) chan int {
-	total := make(chan int)
-	go func() {
-		groupByUser := map[string][]*entities.License{}
-		for item := range link {
-			groupByUser[item.UserID] = append(groupByUser[item.UserID], item)
-		}
-		var sum int
-		for _, computers := range groupByUser {
-			sum += countDistinct(computers)
-		}
-		total <- sum
-	}()
-	return total
-}
-
-func filterProcess(data []*entities.License, applicationID string) int {
+func consumer(input <-chan *entities.Dto) (int, error) {
 	groupByUser := map[string][]*entities.License{}
-	for _, item := range data {
-		// FilterBy ApplicationID
-		if item.ApplicationID == applicationID {
-			// GroupBy UserID
-			groupByUser[item.UserID] = append(groupByUser[item.UserID], item)
+	for dto := range input {
+		item, err := dto.Data, dto.Error
+		if err != nil {
+			return -1, err
 		}
+		groupByUser[item.UserID] = append(groupByUser[item.UserID], item)
 	}
+
 	var sum int
 	for _, computers := range groupByUser {
 		sum += countDistinct(computers)
 	}
-	return sum
+	return sum, nil
+
 }
 
 func countDistinct(groupedByUser []*entities.License) int {

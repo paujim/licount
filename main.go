@@ -10,7 +10,7 @@ import (
 
 func main() {
 
-	filename := flag.String("file", "sample-small.csv", "filename")
+	filename := flag.String("file", "sample-large.csv", "filename")
 	applicationId := flag.String("app-id", "700", "application id")
 
 	flag.Parse()
@@ -26,10 +26,15 @@ func main() {
 		return
 	}
 	defer licenseFile.Close()
-
-	total := services.
+	log.Printf("Calculating for %s\n", *applicationId)
+	total, err := services.
 		NewLicenceCalculator(services.NewScanner(licenseFile)).
 		Calculate(*applicationId)
+
+	if err != nil {
+		log.Printf("error:, %s", err)
+		return
+	}
 
 	log.Printf("The number of liceses for %s is %v", *applicationId, total)
 

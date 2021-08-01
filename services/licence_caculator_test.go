@@ -27,7 +27,29 @@ func TestLicenseCalculator_Calculate(t *testing.T) {
 	for _, tc := range tests {
 		lc := NewLicenceCalculator(NewScanner(strings.NewReader(tc.data)))
 		assert := assert.New(t)
-		total := lc.CalculateV2("374")
+		total, err := lc.Calculate("374")
+		assert.NoError(err)
+		assert.Equal(tc.total, total)
+	}
+}
+
+func TestLicenseCalculator_CalculateWithError(t *testing.T) {
+	tests := []struct {
+		data  string
+		total int
+	}{
+		{`ComputerID,UserID,ApplicationID,ComputerType,Comment 
+1,1,374,LAPTOP,Exported from System A 
+3,2 
+4,2,374,DESKTOP,Exported from System A
+`, -1},
+	}
+
+	for _, tc := range tests {
+		lc := NewLicenceCalculator(NewScanner(strings.NewReader(tc.data)))
+		assert := assert.New(t)
+		total, err := lc.Calculate("374")
+		assert.Error(err)
 		assert.Equal(tc.total, total)
 	}
 }
@@ -41,7 +63,8 @@ func TestLicenseCalculator_Calculate(t *testing.T) {
 // 	defer f.Close()
 // 	lc := NewLicenceCalculator(NewScanner(f))
 // 	assert := assert.New(t)
-// 	total := lc.CalculateV2("700")
+// 	total, err := lc.Calculate("700")
+// 	assert.NoError(err)
 // 	assert.Equal(231, total)
 // }
 
@@ -54,6 +77,7 @@ func TestLicenseCalculator_Calculate(t *testing.T) {
 // 	defer f.Close()
 // 	lc := NewLicenceCalculator(NewScanner(f))
 // 	assert := assert.New(t)
-// 	total := lc.CalculateV2("700")
+// 	total, err := lc.Calculate("700")
+// 	assert.NoError(err)
 // 	assert.Equal(15082, total)
 // }

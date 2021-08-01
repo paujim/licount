@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/csv"
 	"io"
+	"log"
 
 	"github.com/paujim/licount/entities"
 )
@@ -17,7 +18,7 @@ const (
 
 type CsvScanner interface {
 	Scan() (*entities.License, error)
-	ProduceByApplicationId(applicationID string) chan *entities.License
+	ProduceByApplicationId(applicationID string) chan *entities.Dto
 }
 
 type csvScanner struct {
@@ -34,19 +35,24 @@ func (o *csvScanner) Scan() (*entities.License, error) {
 	return parse(o.reader.Read())
 }
 
-func (o *csvScanner) ProduceByApplicationId(applicationID string) chan *entities.License {
-	link := make(chan *entities.License)
-	go func() {
+func (o *csvScanner) ProduceByApplicationId(applicationID string) chan *entities.Dto {
+	outputCn := make(chan *entities.Dto)
+	go func(output chan *entities.Dto) {
 		l, err := o.Scan()
 		for err == nil {
+			// Filter by ApplicationID
 			if applicationID == l.ApplicationID {
-				link <- l
+				output <- &entities.Dto{Data: l, Error: nil}
 			}
 			l, err = o.Scan()
 		}
-		close(link)
-	}()
-	return link
+		if err.Error() != "EOF" {
+			log.Printf("errors: %s\n", err)
+			output <- &entities.Dto{Data: nil, Error: err}
+		}
+		close(output)
+	}(outputCn)
+	return outputCn
 }
 
 func parse(raw []string, err error) (*entities.License, error) {
